@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pretController = require('../controllers/pret.controller');
+const pretController = require('../controllers/pretController');
 
 router.post('/', pretController.createPret);
 router.get('/', pretController.getAllPrets);

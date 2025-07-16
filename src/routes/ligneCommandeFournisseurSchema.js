@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ligneCommandeController = require('../controllers/ligneCommandeFournisseur.controller');
+const ligneCommandeController = require('../controllers/ligneCommandeController');
 
 router.post('/', ligneCommandeController.createLigneCommande);
 router.get('/', ligneCommandeController.getAllLigneCommandes);

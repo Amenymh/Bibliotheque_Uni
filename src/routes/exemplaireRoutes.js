@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const exemplaireController = require('../controllers/exemplaire.controller');
+const exemplaireController = require('../controllers/exemplaireController');
 
 router.post('/', exemplaireController.createExemplaire);
 router.get('/', exemplaireController.getAllExemplaires);

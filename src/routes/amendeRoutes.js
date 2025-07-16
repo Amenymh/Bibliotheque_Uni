@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const amendeController = require('../controllers/amende.controller');
+const amendeController = require('../controllers/amendeController');
 
 router.post('/', amendeController.createAmende);
 router.get('/', amendeController.getAllAmendes);

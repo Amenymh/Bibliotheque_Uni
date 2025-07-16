@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const fournisseurController = require('../controllers/fournisseur.controller');
+const fournisseurController = require('../controllers/fournisseurController');
 
 router.post('/', fournisseurController.createFournisseur);
 router.get('/', fournisseurController.getAllFournisseurs);

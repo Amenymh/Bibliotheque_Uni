@@ -1,4 +1,4 @@
-const LigneCommandeFournisseur = require('../models/ligneCommandeFournisseur.model');
+const LigneCommandeFournisseur = require('../models/ligneCommandeFournisseur');
 
 exports.createLigneCommandeFournisseur = async (req, res) => {
   try {

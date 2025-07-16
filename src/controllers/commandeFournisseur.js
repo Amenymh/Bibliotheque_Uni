@@ -1,4 +1,4 @@
-const CommandeFournisseur = require('../models/commandeFournisseur.model');
+const CommandeFournisseur = require('../models/commandeFournisseur');
 
 exports.createCommandeFournisseur = async (req, res) => {
   try {

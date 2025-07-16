@@ -1,4 +1,4 @@
-const Amende = require('../models/amende.model');
+const Amende = require('../models/amende');
 
 exports.createAmende = async (req, res) => {
   try {

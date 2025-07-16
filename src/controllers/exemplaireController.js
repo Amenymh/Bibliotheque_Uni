@@ -1,4 +1,4 @@
-const Exemplaire = require('../models/exemplaire.model');
+const Exemplaire = require('../models/exemplaire');
 
 exports.createExemplaire = async (req, res) => {
   try {

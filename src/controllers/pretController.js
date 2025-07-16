@@ -1,4 +1,4 @@
-const Pret = require('../models/pret.model');
+const Pret = require('../models/pret');
 
 exports.createPret = async (req, res) => {
   try {

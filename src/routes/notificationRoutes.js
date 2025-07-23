@@ -1,11 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
+const { auth, authorize } = require('../middlewares/authMiddleware');
 
-router.post('/', notificationController.createNotification);
-router.get('/', notificationController.getAllNotifications);
-router.get('/:id', notificationController.getNotificationById);
-router.put('/:id', notificationController.updateNotification);
-router.delete('/:id', notificationController.deleteNotification);
+// ➕ Créer une notification (admin ou gestionnaire)
+router.post('/', auth, authorize(['admin', 'gestionnaire']), notificationController.createNotification);
+
+// 📥 Obtenir toutes les notifications
+router.get('/', auth, notificationController.getAllNotifications);
+
+// 🔍 Obtenir une notification par ID
+router.get('/:id', auth, notificationController.getNotificationById);
+
+// 🔄 Mettre à jour une notification
+router.put('/:id', auth, authorize(['admin', 'gestionnaire']), notificationController.updateNotification);
+
+// ❌ Supprimer une notification
+router.delete('/:id', auth, authorize('admin'), notificationController.deleteNotification);
 
 module.exports = router;

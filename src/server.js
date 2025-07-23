@@ -30,7 +30,7 @@ const pretRoutes = require('./routes/pretRoutes');
 const amendeRoutes = require('./routes/amendeRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const commandeFournisseurRoutes = require('./routes/commandeFournisseurRoutes');
-const ligneCommandeFournisseurRoutes = require('./routes/ligneCommandeFournisseurRoutes');
+const ligneCommandeFournisseurRoutes = require('./routes/ligneCommandeRoutes');
 
 // Point de contrôle de l’API
 app.get('/', (req, res) => {

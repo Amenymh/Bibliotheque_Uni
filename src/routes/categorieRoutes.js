@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const categorieController = require('../controllers/categorieController');
+const { auth, authorize } = require('../middlewares/authMiddleware');
 
-router.post('/', categorieController.createCategorie);
-router.get('/', categorieController.getAllCategories);
-router.get('/:id', categorieController.getCategorieById);
-router.put('/:id', categorieController.updateCategorie);
-router.delete('/:id', categorieController.deleteCategorie);
+// 🔒 Routes protégées - accessibles uniquement aux employés
+router.post('/', auth, authorize(['employe']), categorieController.createCategorie);
+router.get('/', auth, authorize(['employe']), categorieController.getAllCategories);
+router.get('/:id', auth, authorize(['employe']), categorieController.getCategorieById);
+router.put('/:id', auth, authorize(['employe']), categorieController.updateCategorie);
+router.delete('/:id', auth, authorize(['employe']), categorieController.deleteCategorie);
 
 module.exports = router;

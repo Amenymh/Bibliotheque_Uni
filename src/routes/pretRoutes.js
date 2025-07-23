@@ -1,11 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const pretController = require('../controllers/pretController');
+const { auth, authorize } = require('../middlewares/authMiddleware');
 
-router.post('/', pretController.createPret);
-router.get('/', pretController.getAllPrets);
-router.get('/:id', pretController.getPretById);
-router.put('/:id', pretController.updatePret);
-router.delete('/:id', pretController.deletePret);
+// ➕ Créer un prêt (admin ou gestionnaire)
+router.post('/', auth, authorize(['admin', 'gestionnaire']), pretController.createPret);
+
+// 📥 Obtenir tous les prêts
+router.get('/', auth, pretController.getAllPrets);
+
+// 🔍 Obtenir un prêt par ID
+router.get('/:id', auth, pretController.getPretById);
+
+// 🔄 Mettre à jour un prêt
+router.put('/:id', auth, authorize(['admin', 'gestionnaire']), pretController.updatePret);
+
+// ❌ Supprimer un prêt
+router.delete('/:id', auth, authorize('admin'), pretController.deletePret);
 
 module.exports = router;

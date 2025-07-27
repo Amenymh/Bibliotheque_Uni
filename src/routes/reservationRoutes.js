@@ -6,13 +6,13 @@ const { auth, authorize } = require('../middlewares/authMiddleware');
 router.post('/', auth, reservationController.createReservation);
 
 // 📥 Obtenir toutes les réservations (admin ou gestionnaire)
-router.get('/', auth, authorize(['admin', 'gestionnaire']), reservationController.getAllReservations);
+router.get('/', auth, authorize(['admin']), reservationController.getAllReservations);
 
 // 🔍 Obtenir une réservation par ID (auth requis)
 router.get('/:id', auth, reservationController.getReservationById);
 
 // 🔄 Mettre à jour une réservation
-router.put('/:id', auth, authorize(['admin', 'gestionnaire']), reservationController.updateReservation);
+router.put('/:id', auth, authorize(['admin']), reservationController.updateReservation);
 
 // ❌ Supprimer une réservation
 router.delete('/:id', auth, authorize('admin'), reservationController.deleteReservation);

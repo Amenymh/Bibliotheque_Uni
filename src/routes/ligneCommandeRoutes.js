@@ -3,7 +3,7 @@ const router = express.Router();
 const ligneCommandeController = require('../controllers/ligneCommandeController');
 const { auth, authorize } = require('../middlewares/authMiddleware');
 // ➕ Créer une ligne de commande fournisseur
-router.post('/', auth, authorize(['admin', 'gestionnaire']), ligneCommandeController.createLigneCommandeFournisseur);
+router.post('/', auth, authorize(['admin']), ligneCommandeController.createLigneCommandeFournisseur);
 
 // 📥 Obtenir toutes les lignes de commande
 router.get('/', auth, ligneCommandeController.getAllLigneCommandeFournisseurs);
@@ -12,7 +12,7 @@ router.get('/', auth, ligneCommandeController.getAllLigneCommandeFournisseurs);
 router.get('/:id', auth, ligneCommandeController.getLigneCommandeFournisseurById);
 
 // 🔄 Mettre à jour une ligne de commande
-router.put('/:id', auth, authorize(['admin', 'gestionnaire']), ligneCommandeController.updateLigneCommandeFournisseur);
+router.put('/:id', auth, authorize(['admin']), ligneCommandeController.updateLigneCommandeFournisseur);
 
 // ❌ Supprimer une ligne de commande
 router.delete('/:id', auth, authorize('admin'), ligneCommandeController.deleteLigneCommandeFournisseur);

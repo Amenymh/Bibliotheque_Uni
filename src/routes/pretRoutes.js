@@ -4,7 +4,7 @@ const pretController = require('../controllers/pretController');
 const { auth, authorize } = require('../middlewares/authMiddleware');
 
 // ➕ Créer un prêt (admin ou gestionnaire)
-router.post('/', auth, authorize(['admin', 'gestionnaire']), pretController.createPret);
+router.post('/', auth, authorize(['admin',]), pretController.createPret);
 
 // 📥 Obtenir tous les prêts
 router.get('/', auth, pretController.getAllPrets);
@@ -13,7 +13,7 @@ router.get('/', auth, pretController.getAllPrets);
 router.get('/:id', auth, pretController.getPretById);
 
 // 🔄 Mettre à jour un prêt
-router.put('/:id', auth, authorize(['admin', 'gestionnaire']), pretController.updatePret);
+router.put('/:id', auth, authorize(['admin']), pretController.updatePret);
 
 // ❌ Supprimer un prêt
 router.delete('/:id', auth, authorize('admin'), pretController.deletePret);

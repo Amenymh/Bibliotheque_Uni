@@ -4,7 +4,7 @@ const notificationController = require('../controllers/notificationController');
 const { auth, authorize } = require('../middlewares/authMiddleware');
 
 // ➕ Créer une notification (admin ou gestionnaire)
-router.post('/', auth, authorize(['admin', 'gestionnaire']), notificationController.createNotification);
+router.post('/', auth, authorize(['admin']), notificationController.createNotification);
 
 // 📥 Obtenir toutes les notifications
 router.get('/', auth, notificationController.getAllNotifications);
@@ -13,7 +13,7 @@ router.get('/', auth, notificationController.getAllNotifications);
 router.get('/:id', auth, notificationController.getNotificationById);
 
 // 🔄 Mettre à jour une notification
-router.put('/:id', auth, authorize(['admin', 'gestionnaire']), notificationController.updateNotification);
+router.put('/:id', auth, authorize(['admin']), notificationController.updateNotification);
 
 // ❌ Supprimer une notification
 router.delete('/:id', auth, authorize('admin'), notificationController.deleteNotification);

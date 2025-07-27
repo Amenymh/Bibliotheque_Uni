@@ -49,8 +49,8 @@ app.use('/api/reservations', reservationRoutes);
 app.use('/api/prets', pretRoutes);
 app.use('/api/amendes', amendeRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/commandes-fournisseur', commandeFournisseurRoutes);
-app.use('/api/lignes-commandes', ligneCommandeFournisseurRoutes);
+app.use('/api/commandesfournisseur', commandeFournisseurRoutes);
+app.use('/api/lignescommandes', ligneCommandeFournisseurRoutes);
 
 // Middleware global de gestion des erreurs
 app.use(errorHandler);

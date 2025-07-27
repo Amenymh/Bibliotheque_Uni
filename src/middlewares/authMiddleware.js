@@ -1,45 +1,64 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Nécessaire si tu veux vérifier statut ou charger plus d'infos
+const User = require('../models/User');
 
-// 🔐 Middleware d’authentification
+// Middleware d'authentification
 const auth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
+    // Récupérer le token du header Authorization
+    const authHeader = req.header('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Accès non autorisé. Token manquant ou mal formé.' });
+      return res.status(401).json({ message: 'Accès refusé. Token manquant.' });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.replace('Bearer ', '').trim();
 
-    // Vérification du token
+    // Vérifier le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Tu peux soit :
-    // 1. Utiliser decoded directement (comme tu le fais déjà)
-    // 2. OU charger l'utilisateur depuis la base si tu veux plus de contrôle :
-    const user = await User.findById(decoded.id || decoded.userId);
-    if (!user || user.statut !== 'actif') {
-      return res.status(403).json({ message: 'Utilisateur invalide ou inactif.' });
+    // Récupérer l'id utilisateur depuis le token
+    const userId = decoded.id || decoded.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Token invalide.' });
     }
 
-    req.user = user; // attache l'utilisateur à la requête
+    // Trouver l'utilisateur dans la base de données
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Utilisateur non trouvé.' });
+    }
+
+    if (user.statut !== 'actif') {
+      return res.status(401).json({ message: 'Compte utilisateur inactif ou suspendu.' });
+    }
+
+    // Ajouter l'utilisateur et token à l'objet request
+    req.user = user;
+    req.token = token;
+
     next();
-  } catch (err) {
-    console.error('Erreur auth middleware :', err.message);
-    return res.status(403).json({ message: 'Token invalide ou expiré.' });
+  } catch (error) {
+    console.error('Erreur auth middleware:', error);
+    return res.status(401).json({ message: 'Token invalide.' });
   }
 };
 
-// 🔐 Middleware d’autorisation selon les rôles
-const authorize = (roles = []) => {
+// Middleware d'autorisation (rôles)
+// Accepte un rôle ou un tableau de rôles
+const authorize = (roles) => {
+  // Convertir roles en tableau si c'est une chaîne
+  if (typeof roles === 'string') {
+    roles = [roles];
+  }
+
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentification requise.' });
     }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Accès refusé. Rôle insuffisant.' });
+    if (roles.length > 0 && !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Accès refusé. Permissions insuffisantes.' });
     }
 
     next();

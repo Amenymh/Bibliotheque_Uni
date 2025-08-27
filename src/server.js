@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
+const cors = require('cors'); // ✅ Ajout de cors
 
 // Middlewares personnalisés
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -9,6 +10,11 @@ const errorHandler = require('./middlewares/errorHandler');
 
 // Initialiser Express
 const app = express();
+
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:5174'], // Ajoute les deux ports ici
+  credentials: true // à activer si tu utilises des cookies ou headers auth
+}));
 
 // Middlewares globaux
 app.use(express.json());
@@ -54,9 +60,11 @@ app.use('/api/lignescommandes', ligneCommandeFournisseurRoutes);
 
 // Middleware global de gestion des erreurs
 app.use(errorHandler);
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Lancement du serveur
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });

@@ -5,6 +5,7 @@ const { auth, authorize } = require('../middlewares/authMiddleware');
 
 // 🔒 Routes protégées - accessibles uniquement aux employés
 router.post('/', auth, authorize(['employe']), fournisseurController.createFournisseur);
+router.post('/register', fournisseurController.registerFournisseur);
 router.get('/', auth, authorize(['employe']), fournisseurController.getAllFournisseurs);
 router.get('/:id', auth, authorize(['employe']), fournisseurController.getFournisseurById);
 router.put('/:id', auth, authorize(['employe']), fournisseurController.updateFournisseur);

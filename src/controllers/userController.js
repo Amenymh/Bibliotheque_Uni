@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role },
@@ -20,11 +21,11 @@ const createUser = async (req, res) => {
     } = req.body;
 
     // Vérifie que le rôle est valide
-    if (!['employe', 'etudiant', 'supplier','admin'].includes(role)) {
+    if (!['employe', 'etudiant', 'fournisseur','admin'].includes(role)) {
       return res.status(400).json({ message: 'Role invalide.' });
     }
 
-    // Vérifie que l'utilisateur n'existe pas déjà
+    // Vérifie que l'utilisateur n'existe pas déjà 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
@@ -61,6 +62,151 @@ const createUser = async (req, res) => {
   }
 };
 
+const register = async (req, res) => {
+  try {
+    const {
+      nom, prenom, email, motDePasse,
+      numeroEtudiant, filiere, niveauEtude
+    } = req.body;
+
+    // Vérifie que l'utilisateur n'existe pas déjà 
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
+    }
+
+    // Hash du mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(motDePasse, salt);
+
+    // Crée un nouvel utilisateur avec le rôle 'etudiant' par défaut
+    const user = new User({
+      nom, 
+      prenom, 
+      email, 
+      motDePasse: hashedPassword, 
+      role: 'etudiant',  // Rôle étudiant par défaut
+      numeroEtudiant, 
+      filiere, 
+      niveauEtude,
+      maxEmprunts: 3  // Valeur par défaut pour les étudiants
+    });
+
+    await user.save();
+
+    // Génère le token
+    const token = generateToken(user);
+
+    // Ne renvoie pas le mot de passe dans la réponse
+    const userResponse = user.toObject();
+    delete userResponse.motDePasse;
+
+    res.status(201).json({
+      message: 'Étudiant inscrit avec succès.',
+      user: userResponse,
+      token: token
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, motDePasse } = req.body;
+
+    // Validate input
+    if (!email || !motDePasse) {
+      return res.status(400).json({ message: 'Veuillez fournir un email et un mot de passe.' });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
+    }
+
+    // Check if user is active
+    if (user.statut !== 'actif') {
+      return res.status(401).json({ message: 'Compte utilisateur inactif ou suspendu.' });
+    }
+
+    // Verify password
+    const isMatch = await bcrypt.compare(motDePasse, user.motDePasse);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
+    }
+
+    // Generate token
+    const token = generateToken(user);
+
+    // Don't send password in response
+    const userResponse = user.toObject();
+    delete userResponse.motDePasse;
+
+    res.json({
+      message: 'Connexion réussie.',
+      user: userResponse,
+      token
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Profil actuel
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+    const userResponse = user.toObject();
+    delete userResponse.motDePasse;
+    res.json(userResponse);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; 
+
+// Update profile for authenticated user
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id; // Get user ID from auth middleware
+    const updates = req.body;
+
+    // Remove sensitive fields that shouldn't be updated via this endpoint
+    delete updates.motDePasse;
+    delete updates.role;
+    delete updates._id;
+
+    // Hash password if provided (optional - you might want a separate endpoint for this)
+    if (updates.newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      updates.motDePasse = await bcrypt.hash(updates.newPassword, salt);
+      delete updates.newPassword;
+    }
+
+    const user = await User.findByIdAndUpdate(userId, updates, { 
+      new: true,
+      runValidators: true 
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+    }
+
+    // Don't send password in response
+    const userResponse = user.toObject();
+    delete userResponse.motDePasse;
+
+    res.json({ 
+      message: 'Profil mis à jour avec succès.', 
+      user: userResponse 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const getAllUsers = async (req, res) => {
   try {
@@ -110,113 +256,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Add this new register function after the existing createUser function
-
-const register = async (req, res) => {
-  try {
-    const {
-      nom, prenom, email, motDePasse,
-      numeroEtudiant, filiere, niveauEtude
-    } = req.body;
-
-    // Vérifie que l'utilisateur n'existe pas déjà
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Un utilisateur avec cet email existe déjà.' });
-    }
-
-    // Hash du mot de passe
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(motDePasse, salt);
-
-    // Crée un nouvel utilisateur avec le rôle 'etudiant' par défaut
-    const user = new User({
-      nom, 
-      prenom, 
-      email, 
-      motDePasse: hashedPassword, 
-      role: 'etudiant',  // Rôle étudiant par défaut
-      numeroEtudiant, 
-      filiere, 
-      niveauEtude,
-      maxEmprunts: 3  // Valeur par défaut pour les étudiants
-    });
-
-    await user.save();
-
-    // Génère le token
-    const token = generateToken(user);
-
-    // Ne renvoie pas le mot de passe dans la réponse
-    const userResponse = user.toObject();
-    delete userResponse.motDePasse;
-
-    res.status(201).json({
-      message: 'Étudiant inscrit avec succès.',
-      user: userResponse,
-      token: token
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Update the module.exports to include the new register function
-module.exports = {
-  createUser,
-  register,
-  getAllUsers,
-  getUserById,
-  updateUser,
-  deleteUser
-};
-
-// Add this login function after the register function
-const login = async (req, res) => {
-  try {
-    const { email, motDePasse } = req.body;
-
-    // Validate input
-    if (!email || !motDePasse) {
-      return res.status(400).json({ message: 'Veuillez fournir un email et un mot de passe.' });
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Email ou mot de passe incorrect.' });
-    }
-
-    // Check if user is active
-    if (user.statut !== 'actif') {
-      return res.status(401).json({ message: 'Compte utilisateur inactif ou suspendu.' });
-    }
-
-    // Verify password
-    const isMatch = await bcrypt.compare(motDePasse, user.motDePasse);
-    if (!isMatch) {
-      return res.status(401).json({ message: ' mot de passe incorrect.' });
-    }
-
-    // Generate token
-    const token = generateToken(user);
-
-    // Don't send password in response
-    const userResponse = user.toObject();
-    delete userResponse.motDePasse;
-
-    res.json({
-      message: 'Connexion réussie.',
-      user: userResponse,
-      token
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Update the module.exports to include the new login function
 module.exports = {
   createUser,
   register,
@@ -224,5 +263,7 @@ module.exports = {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  updateProfile,
+  deleteUser,
+  getMe,
 };

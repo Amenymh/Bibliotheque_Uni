@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
     enum: ['employe', 'etudiant', 'supplier','admin'],
     required: true
   },
+  imageprofile: {type: String},
+
 
   // Employé
   matricule: String,

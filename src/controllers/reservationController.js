@@ -1,37 +1,8 @@
-const Reservation = require('../models/reservation');
-const Pret = require('../models/pret');
+const Reservation = require("../models/reservation");
 
 exports.createReservation = async (req, res) => {
   try {
-    const { livreId } = req.body;
-    // Check if the book is available (has no active loan)
-    const activePret = await Pret.findOne({
-      livreId,
-      dateRetour: { $exists: false },
-    });
-    if (!activePret) {
-      return res.status(400).json({ message: "Livre est disponible, empruntez-le au lieu de réserver." });
-    }
-    // Check if the user has an active loan for this book
-    const existingPret = await Pret.findOne({
-      livreId,
-      userId: req.user._id,
-      dateRetour: { $exists: false },
-    });
-    if (existingPret) {
-      return res.status(400).json({ message: "Vous avez déjà emprunté ce livre." });
-    }
-    // Check if the user has an active reservation for this book
-    const existingReservation = await Reservation.findOne({
-      livreId,
-      userId: req.user._id,
-      cancelled: { $ne: true },
-    });
-    if (existingReservation) {
-      return res.status(400).json({ message: "Vous avez déjà une réservation active pour ce livre." });
-    }
-    
-    const item = await Reservation.create({ ...req.body, userId: req.user._id });
+    const item = await Reservation.create(req.body);
     res.status(201).json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -41,15 +12,6 @@ exports.createReservation = async (req, res) => {
 exports.getAllReservations = async (req, res) => {
   try {
     const items = await Reservation.find();
-    res.json(items);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.getMyReservations = async (req, res) => {
-  try {
-    const items = await Reservation.find({ userId: req.user._id, cancelled: { $ne: true } }).populate('livre');
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -86,17 +48,28 @@ exports.deleteReservation = async (req, res) => {
   }
 };
 
+// ➕ Obtenir les réservations de l'utilisateur connecté
+exports.getMyReservations = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assumé fourni par le middleware auth
+    const reservations = await Reservation.find({ userId, cancelled: false });
+    res.json(reservations);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ➕ Annuler une réservation
 exports.cancelReservation = async (req, res) => {
   try {
-    const { reservationId } = req.body;
-    const item = await Reservation.findById(reservationId);
-    if (!item) return res.status(404).json({ message: "Reservation non trouvé" });
-    if (item.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Non autorisé" });
+    const { reservationId } = req.body; // ID de la réservation à annuler
+    const reservation = await Reservation.findById(reservationId);
+    if (!reservation) return res.status(404).json({ message: "Reservation non trouvé" });
+    if (reservation.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Non autorisé à annuler cette réservation" });
     }
-    if (item.cancelled) return res.status(400).json({ message: "Réservation déjà annulée" });
-    item.cancelled = true;
-    await item.save();
+    reservation.cancelled = true; // Marquer comme annulée
+    await reservation.save();
     res.json({ message: "Réservation annulée avec succès" });
   } catch (err) {
     res.status(500).json({ error: err.message });

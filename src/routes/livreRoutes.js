@@ -1,23 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const livreController = require('../controllers/livreController');
-const { auth, authorize } = require('../middlewares/authMiddleware');
-const upload = require("../middlewares/upload"); // ✅ ton code
+const livreController = require("../controllers/livreController");
+const upload = require("../middlewares/upload");
 
+// Upload fields: one cover + multiple images
+const uploadFields = upload.fields([
+  { name: "imageCouverture", maxCount: 1 },
+  { name: "images", maxCount: 5 },
+]);
 
-// ➕ Créer un livre (admin )
-router.post('/',upload.single("image"), auth, authorize(['employe','admin' ]), livreController.createLivre);
-
-// 📥 Obtenir tous les livres (auth requis)
-router.get('/', auth, livreController.getAllLivres);
-
-// 🔍 Obtenir un livre par ID (auth requis)
-router.get('/:id', auth, livreController.getLivreById);
-
-// 🔄 Mettre à jour un livre (admin ou gestionnaire)
-router.put('/:id', auth, authorize(['employe','admin']), livreController.updateLivre);
-
-// ❌ Supprimer un livre (admin uniquement)
-router.delete('/:id', auth, authorize('employe','admin'), livreController.deleteLivre);
+// Routes
+router.post("/", uploadFields, livreController.createLivre);
+router.get("/", livreController.getLivres);
+router.get("/:id", livreController.getLivreById);
+router.put("/:id", uploadFields, livreController.updateLivre);
+router.delete("/:id", livreController.deleteLivre);
 
 module.exports = router;

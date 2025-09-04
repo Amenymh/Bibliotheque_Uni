@@ -1,107 +1,129 @@
-const Pret = require('../models/pret');
-const Reservation = require('../models/reservation');
+const Livre = require("../models/livre"); // Importe le modèle Livre
+const Pret = require("../models/pret");   // Importe le modèle Pret
 
+// Créer un prêt (admin)
 exports.createPret = async (req, res) => {
   try {
-    console.log('Request body:', req.body);
-    console.log('Authenticated user:', req.user);
-    
-    const { livreId } = req.body;
-    // Check if the book is already borrowed by anyone (global availability)
-    const activePret = await Pret.findOne({
-      livreId,
-      dateRetour: { $exists: false },
-    });
-    if (activePret) {
-      return res.status(400).json({ message: "Livre non disponible, déjà emprunté." });
+    const { livreId, userId } = req.body; // Admin specifies userId
+    const livre = await Livre.findById(livreId);
+    if (!livre || !livre.disponible) {
+      return res.status(400).json({ message: "Livre non disponible" });
     }
-    // Check if the user has an active reservation for this book
-    const existingReservation = await Reservation.findOne({
-      livreId,
-      userId: req.user._id,
-      cancelled: { $ne: true },
-    });
-    if (existingReservation) {
-      return res.status(400).json({ message: "Vous avez déjà une réservation active pour ce livre." });
-    }
-    // Check if the user has an active loan for this book
-    const existingPret = await Pret.findOne({
-      livreId,
-      userId: req.user._id,
-      dateRetour: { $exists: false },
-    });
-    if (existingPret) {
-      return res.status(400).json({ message: "Vous avez déjà emprunté ce livre." });
-    }
-    
-    const item = await Pret.create({ ...req.body, userId: req.user._id });
-    res.status(201).json(item);
+    const pret = new Pret({ userId, livreId, dateEmprunt: new Date() });
+    await pret.save();
+    livre.disponible = false;
+    await livre.save();
+    res.status(201).json({ message: "Prêt créé avec succès", pret });
   } catch (err) {
-    console.error('CreatePret error:', err);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
+// Emprunter un livre (étudiant)
+exports.borrowBook = async (req, res) => {
+  try {
+    const { livreId } = req.body;
+    const userId = req.user.id; // From auth middleware
+
+    // Verify book exists and is available
+    const livre = await Livre.findById(livreId);
+    if (!livre || !livre.disponible) {
+      return res.status(400).json({ message: "Livre non disponible" });
+    }
+
+    // Check if user already borrowed the book
+    const existingLoan = await Pret.findOne({ userId, livreId, dateRetour: null });
+    if (existingLoan) {
+      return res.status(400).json({ message: "Livre déjà emprunté par cet utilisateur" });
+    }
+
+    // Create loan
+    const pret = new Pret({ userId, livreId, dateEmprunt: new Date() });
+    await pret.save();
+
+    // Update book availability
+    livre.disponible = false;
+    await livre.save();
+
+    res.status(201).json({ message: "Livre emprunté avec succès", pret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// Obtenir tous les prêts
 exports.getAllPrets = async (req, res) => {
   try {
-    const items = await Pret.find();
-    res.json(items);
+    const prets = await Pret.find();
+    res.json(prets);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-exports.getMyPrets = async (req, res) => {
-  try {
-    const items = await Pret.find({ userId: req.user._id }).populate('livre');
-    res.json(items);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
+// Obtenir un prêt par ID
 exports.getPretById = async (req, res) => {
   try {
-    const item = await Pret.findById(req.params.id);
-    if (!item) return res.status(404).json({ message: "Pret non trouvé" });
-    res.json(item);
+    const pret = await Pret.findById(req.params.id);
+    if (!pret) return res.status(404).json({ message: "Prêt non trouvé" });
+    res.json(pret);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Mettre à jour un prêt
 exports.updatePret = async (req, res) => {
   try {
-    const item = await Pret.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!item) return res.status(404).json({ message: "Pret non trouvé" });
-    res.json(item);
+    const pret = await Pret.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!pret) return res.status(404).json({ message: "Prêt non trouvé" });
+    res.json(pret);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Supprimer un prêt
 exports.deletePret = async (req, res) => {
   try {
-    const item = await Pret.findByIdAndDelete(req.params.id);
-    if (!item) return res.status(404).json({ message: "Pret non trouvé" });
-    res.json({ message: "Pret supprimé" });
+    const pret = await Pret.findByIdAndDelete(req.params.id);
+    if (!pret) return res.status(404).json({ message: "Prêt non trouvé" });
+    res.json({ message: "Prêt supprimé" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Obtenir les prêts de l'utilisateur connecté
+exports.getMyPrets = async (req, res) => {
+  try {
+    const userId = req.user.id; // From auth middleware
+    const prets = await Pret.find({ userId, dateRetour: null }); // Prêts en cours
+    res.json(prets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Retourner un prêt
 exports.returnPret = async (req, res) => {
   try {
     const { pretId } = req.body;
-    const item = await Pret.findById(pretId);
-    if (!item) return res.status(404).json({ message: "Pret non trouvé" });
-    if (item.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Non autorisé" });
+    const pret = await Pret.findById(pretId);
+    if (!pret) return res.status(404).json({ message: "Prêt non trouvé" });
+    if (pret.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Non autorisé à retourner ce prêt" });
     }
-    if (item.dateRetour) return res.status(400).json({ message: "Pret déjà retourné" });
-    item.dateRetour = new Date();
-    await item.save();
-    res.json({ message: "Pret retourné avec succès" });
+    pret.dateRetour = new Date();
+    await pret.save();
+    const livre = await Livre.findById(pret.livreId);
+    if (livre) {
+      livre.disponible = true;
+      await livre.save();
+    }
+    res.json({ message: "Prêt retourné avec succès" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

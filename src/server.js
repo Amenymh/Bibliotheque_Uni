@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
-const cors = require('cors'); // ✅ Ajout de cors
+const cors = require('cors');
+const path = require('path');
 
 // Middlewares personnalisés
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -11,14 +12,21 @@ const errorHandler = require('./middlewares/errorHandler');
 // Initialiser Express
 const app = express();
 
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'], // Ajoute les deux ports ici
-  credentials: true // à activer si tu utilises des cookies ou headers auth
-}));
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true,
+  })
+);
 
 // Middlewares globaux
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (Uploads folder)
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads'))); // Changed to src/Uploads
+
+//app.use("/uploads", express.static("uploads")); // serve images statically
 
 // Connexion à la BDD
 connectDB();
@@ -43,7 +51,7 @@ app.get('/', (req, res) => {
   res.send('📚 API Bibliothèque en ligne');
 });
 
-// Routage principal (auth + rôle seront utilisés dans les routes concernées)
+// Routage principal
 app.use('/api/users', userRoutes);
 app.use('/api/employes', employeRoutes);
 app.use('/api/etudiants', etudiantRoutes);
@@ -60,8 +68,6 @@ app.use('/api/lignescommandes', ligneCommandeFournisseurRoutes);
 
 // Middleware global de gestion des erreurs
 app.use(errorHandler);
-const path = require("path");
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Lancement du serveur
 const PORT = process.env.PORT || 3000;
